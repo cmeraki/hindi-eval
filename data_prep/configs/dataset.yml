@@ -1,0 +1,11 @@
+HuggingFaceH4/no_robots:
+  split: train_sft
+  text_key: messages
+  sample_size: 5
+  process: True
+wikimedia/wikipedia:
+  config: 20231101.en
+  split: train
+  text_key: text
+  sample_size: 100
+  process: False

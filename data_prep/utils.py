@@ -100,24 +100,74 @@ def get_stringify_conversation(example: Dict, message_key: str) -> Dict:
     return example
 
 
-def get_translate_query(example: Dict, example_english: str, example_hindi: str) -> Dict:
+def get_num_convo(example: Dict) -> Dict:
+    """
+    Returns the number of chat conversations in multi turn conversations
+
+    Args:
+        example (Dict): Huggingface datasets
+
+    Returns:
+        Huggingface datasets with `num_convo` key
+    """
+    example['num_convo'] = len(example['messages'])
+    return example
+
+
+def get_prompt(example: Dict, message_key: str) -> List:
+    """
+    Converts multi turn conversations to single turn conversations that
+    needs to be translated
+
+    Args:
+        None
+
+    Returns:
+        List: List of messages
+    """
     system_prompt = {
         "role": "system",
-        "content": "You are an expert tranlator who traslates given text in English to Devnagri Hindi"
+        "content": "You are an expert tranlator who traslates given text in English to colloquial Devnagri Hindi"
     }
 
-    user_example_prompt = {
-        "role": "user",
-        "content": f"Translate {example_english} to Devnagri Hindi"
-    }
+    example_prompts = [
+        {
+            "role": "user",
+            "content": f"Which famous landmarks should I visit in London, beyond the usual ones?"
+        },
+        {
+            "role": "assistant",
+            "content": f"लंदन में मुझे कौन से प्रसिद्ध स्थल देखने चाहिए, जो आमतौर पर नहीं होते हैं?"
+        },
+        {
+            "role": "user",
+            "content": "Here is an offbeat and lesser-known place in London that locals might recommend: God's Own Junkyard - a neon wonderland filled with vintage and new neon signs. There are many other hidden gems in London, and a quick Google search for ‘offbeat things in London’ will bring up many blogs and resources with more options."
+        },
+        {
+            "role": "assistant",
+            "content": " यहां लंदन में एक अनोखा और कम जाना-पहचाना स्थल है जिसकी स्थानीय लोग सिफारिश कर सकते हैं: गॉड्स ओन जंकयार्ड - एक नियॉन वंडरलैंड जो पुराने और नए नियॉन साइन्स से भरा हुआ है। लंदन में कई अन्य छुपे हुए रत्न हैं, और ‘लंदन में अनोखी चीजें’ के लिए गूगल सर्च करने पर आपको कई ब्लॉग्स और संसाधन मिल जाएंगे जिनमें और भी विकल्प होंगे।"
+        }
+    ]
 
-    assistant_example_prompt = {
-        "role": "assistant",
-        "content": f"{example_hindi}"
-    }
+    complete_prompt = [
+        system_prompt
+    ] + example_prompts
 
-    prompts_to_insert = [system_prompt, user_example_prompt, assistant_example_prompt]
-    for p in prompts_to_insert:
-        example['messages'].insert(0, prompt)
+    if isinstance(example[message_key], list):
+        for m in example[message_key]:
+            complete_prompt += [{
+                'role': 'user',
+                'content': m['content'].replace('\n', ' ')
+            }]
 
-    return example
+            yield complete_prompt
+            _ = complete_prompt.pop()
+    else:
+        pass # implement in future
+        yield complete_prompt
+
+
+def get_translate_query(example: Dict, message_key: str) -> Dict:
+
+    for message in example[message_key]:
+        yield message['content']
