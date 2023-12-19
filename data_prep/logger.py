@@ -4,6 +4,7 @@ import sys
 class DataPrepLogger:
     def __init__(self, name: str, filename: str='logs.log'):
         self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter(
             '[%(levelname)s] %(asctime)s %(name)s %(message)s'
