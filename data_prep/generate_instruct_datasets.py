@@ -25,6 +25,7 @@ def gpt_processor(example: Dict, message_key: str, translator: BaseTranslator) -
 
     translated_reponse = []
     for prompt in translate_prompts:
+        logger.debug(f'Prompt created to send to GPT: {prompt} for {example["prompt_id"]}')
         translated_reponse.append(
             translator.translate(prompt)
         )
