@@ -65,3 +65,8 @@ class GPTTranslator(BaseTranslator):
         logger.debug(f'Used {completions.usage.total_tokens} tokens for {self.model_id}')
 
         return completions.choices[0].message.content
+
+
+class GeminiTranslator(BaseTranslator):
+    def __init__(self) -> None:
+        pass
