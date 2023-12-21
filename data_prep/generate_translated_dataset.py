@@ -1,36 +1,27 @@
 import os
 import yaml
 import argparse
-from tqdm import tqdm
 from typing import Dict
+from datetime import datetime
 from datasets import load_dataset
 
-from .utils import get_prompt
-from .translators import SeamlessM4TTranslator, GPTTranslator, BaseTranslator
+from .translators import SeamlessM4TTranslator, GPTTranslator, GeminiTranslator, BaseTranslator
 from .logger import DataPrepLogger
 
 logger = DataPrepLogger(__name__).get_logger()
 
-
-def m4t_processor(example: Dict, message_key: str, translator: BaseTranslator) -> Dict:
-    to_translate = []
-    for msg in example[message_key]:
-        to_translate.append(msg['content'])
-
-    example['translated_reponse_m4t'] = translator.translate(to_translate)
+def multi_turn_conv_processor(example: Dict, message_key: str) -> Dict:
+    to_translate = [msg['content'] for msg in example[message_key]]
+    example['flattened_messages'] = to_translate
     return example
 
-def gpt_processor(example: Dict, message_key: str, translator: BaseTranslator) -> Dict:
-    translate_prompts = get_prompt(example, message_key)
-
-    translated_reponse = []
-    for prompt in translate_prompts:
-        logger.debug(f'Prompt created to send to GPT: {prompt} for {example["prompt_id"]}')
-        translated_reponse.append(
-            translator.translate(prompt)
-        )
-
-    example['translated_reponse_gpt'] = translated_reponse
+def translator_processor(
+        example: Dict,
+        message_key: str,
+        translator: BaseTranslator,
+        translator_name: str
+) -> Dict:
+    example[f'translated_reponse_{translator_name}'] = translator.translate(example[message_key])
     return example
 
 if __name__ == '__main__':
@@ -55,8 +46,9 @@ if __name__ == '__main__':
     with open(os.path.join(args.config_dir, 'dataset.yml'), 'r') as fp:
         dataset_config = yaml.safe_load(fp)
 
-    t1 = SeamlessM4TTranslator(model_id='facebook/hf-seamless-m4t-medium')
+    t1 = SeamlessM4TTranslator(model_id='facebook/hf-seamless-m4t-large')
     t2 = GPTTranslator(model_id='gpt-3.5-turbo-1106')
+    t3 = GeminiTranslator(model_id='gemini-pro')
 
     # Iterate over all datasets present
     logger.info(f'Datasets mentioned in config: {len(dataset_config.keys())}')
@@ -71,19 +63,38 @@ if __name__ == '__main__':
         else:
             dataset = load_dataset(dataset_name)
 
-        dataset = dataset[dc['split']].shuffle().select(range(int(dc['sample_size'])))
         message_key = dc['text_key']
+        dataset = dataset[dc['split']].shuffle().select(range(int(dc['sample_size'])))
+        dataset = dataset.map(
+            lambda x: multi_turn_conv_processor(x, message_key),
+            num_proc=20
+        )
 
         logger.info(f'Starting processing for seamless m4t')
         dataset = dataset.map(
-            lambda x: m4t_processor(x, message_key, t1)
+            lambda x: translator_processor(x, 'flattened_messages', t1, 'm4t')
         )
 
-        logger.info(f'Starting processing for GPT APIs')
+        logger.info(f'Starting processing for GPT API')
         dataset = dataset.map(
-            lambda x: gpt_processor(x, message_key, t2)
+            lambda x: translator_processor(x, 'flattened_messages', t2, 'gpt')
         )
 
-        logger.info(f'Saving processed dataset to: {os.path.join(args.save_path, "translate_results")}')
+        logger.info(f'Starting processing for Gemini API')
+        dataset = dataset.map(
+            lambda x: translator_processor(x, 'flattened_messages', t3, 'gemini')
+        )
 
-        dataset.save_to_disk(os.path.join(args.save_path, 'translate_results'))
+        logger.info(os.path.join(
+            args.save_path,
+            'translation_eval',
+            datetime.strftime(datetime.now(), '%Y%m%d%H'),
+        ))
+
+        dataset.save_to_disk(
+            os.path.join(
+                args.save_path,
+                'translation_eval',
+                datetime.strftime(datetime.now(), '%Y%m%d%H'),
+            )
+        )

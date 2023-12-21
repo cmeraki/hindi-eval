@@ -1,5 +1,10 @@
+import time
 import tiktoken
 from typing import List, Dict
+
+from .logger import DataPrepLogger
+
+logger = DataPrepLogger(__name__).get_logger()
 
 def get_tokens_from_messages(messages: List, model: str="gpt-3.5-turbo-0613") -> int:
     """
@@ -127,7 +132,7 @@ def get_prompt(example: Dict, message_key: str) -> List:
     """
     system_prompt = {
         "role": "system",
-        "content": "You are an expert tranlator who traslates given text in English to colloquial Devnagri Hindi"
+        "content": "You are an expert tranlator who traslates given text in English to colloquial Devnagri Hindi. You output nothing except the translation."
     }
 
     example_prompts = [
@@ -171,3 +176,13 @@ def get_translate_query(example: Dict, message_key: str) -> Dict:
 
     for message in example[message_key]:
         yield message['content']
+
+
+def time_logger(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        logger.debug(f"Execution time of {func.__name__}: {end_time - start_time} seconds")
+        return result
+    return wrapper

@@ -1,3 +1,6 @@
+from textwrap import dedent
+import openai
+import backoff
 from openai import OpenAI
 
 from .logger import DataPrepLogger
@@ -5,37 +8,45 @@ from .logger import DataPrepLogger
 logger = DataPrepLogger(__name__).get_logger()
 
 class GPTEvaluator():
-    def __init__(self) -> None:
+    def __init__(self, model_id) -> None:
         from dotenv import load_dotenv
         load_dotenv()
 
         self.client = OpenAI()
-        self.model_id = 'gpt4'
+        self.model_id = model_id
 
-    def evaluate(self, prompt: str, response1: str, response2: str) -> None:
-        complete_msg = """The task is to {task_prompt}
+    @backoff.on_exception(backoff.expo, openai.RateLimitError, max_time=300)
+    def evaluate(self, original_text:str, candidate_1: str, candidate_2: str) -> None:
+        sys_prompt = {
+            'role': 'system',
+            'content': dedent('''
+                You are an expert judge/evaluator. You will evaluate the translation of English text to colloquial Devnagri Hindi text.
+                You will be given original English text between """<english text>""" and two candidate translations of the text in Devnagri Hindi.
+                Of the two candidate translations, select the better one and only output a number indicating which one is better (1 or 2).
+                Return 3 if both the of the translators are equally good.
+            ''').strip()
+        }
 
-        Which one of the following two reponses is better?
+        usr_prompt = {
+            'role': 'user',
+            'content': dedent(f'''
+            """{original_text}"""
 
-        1. {response1}
+            1. {candidate_1}
+            2. {candidate_2}
+            ''').strip()
+        }
 
-        2. {response2}
+        complete_msg = [sys_prompt, usr_prompt]
 
-        Only output the number as to which one is better (1 or 2). The better
-        response is
-        """.format(
-            prompt=prompt,
-            response1=response1,
-            response2=response2
-        )
+        logger.debug(f'Evaluation prompt: {complete_msg}')
 
         completions = self.client.chat.completions.create(
             model=self.model_id,
             messages=complete_msg
         )
 
-        logger.info(
-            f'Used {completions.usage.total_tokens} tokens for {self.model_id}')
+        logger.debug(f'Used {completions.usage.total_tokens} tokens for {self.model_id}')
 
         return completions.choices[0].message.content
 
