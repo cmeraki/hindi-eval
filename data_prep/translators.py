@@ -1,14 +1,21 @@
 import os
 import torch
+from textwrap import dedent
 from abc import ABC, abstractmethod
 from typing import List
 from openai import OpenAI
 from torch.cuda import empty_cache
-from transformers import AutoProcessor, SeamlessM4TForTextToText
+from transformers import (
+    AutoProcessor,
+    SeamlessM4TForTextToText,
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    pipeline,
+)
+from optimum.bettertransformer import BetterTransformer
 import google.generativeai as genai
 
 from .logger import DataPrepLogger
-
 logger = DataPrepLogger(__name__).get_logger()
 
 class BaseTranslator(ABC):
@@ -118,3 +125,56 @@ class GeminiTranslator(BaseTranslator):
                 translated_text.append('')
 
         return translated_text
+
+
+class HFTranslator(BaseTranslator):
+    def __init__(self, model_id: str, prompt_template: str=None, **model_kwargs) -> None:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_id,
+            fast=True,
+            padding='max_length'
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            **model_kwargs
+        )
+
+        try:
+            logger.info(f'Trying to convert the model to bettertransformer')
+            model = BetterTransformer.transform(model, keep_original_model=False)
+
+        except Exception as err:
+            logger.warn(f'Not able to convert the model to transformer. Skipping')
+
+        self.prompt_template = prompt_template
+        if not self.prompt_template:
+            self.prompt_template = dedent("""
+            [INST] <<SYS>>
+            You are an expert tranlator who traslates given text in English to colloquial Devnagri Hindi. You output nothing except the translation.
+            <</SYS>>
+            Translate: {prompt}[/INST]
+            """)
+
+        self.pipe = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            max_new_tokens=2048,
+            repetition_penalty=1.1
+        )
+
+        self.pipe.tokenizer.padding_side = 'left'
+        self.pipe.tokenizer.pad_token_id = model.config.eos_token_id
+
+    def translate(self, source_text: List[str], batch_size: int=4) -> List[str]:
+        to_translate = [f'{self.prompt_template.format(prompt=t)}' for t in source_text]
+
+        logger.info(f'First prompt sent to the model: {to_translate[0]}')
+        outputs = self.pipe(
+            to_translate,
+            batch_size=batch_size
+        )
+
+        empty_cache()
+
+        return [o[0]['generated_text'][len(i):] for i, o in zip(to_translate, outputs)]

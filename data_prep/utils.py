@@ -1,6 +1,7 @@
 import time
 import tiktoken
-from typing import List, Dict
+from typing import List
+from datasets import DatasetDict
 
 from .logger import DataPrepLogger
 
@@ -60,7 +61,7 @@ def stringify(json_msg: str) -> str:
     return complete_msg
 
 
-def get_batch_tokens(example: Dict, message_key: str, model="gpt-3.5-turbo-0613") -> int:
+def get_batch_tokens(example: DatasetDict, message_key: str, model="gpt-3.5-turbo-0613") -> int:
     """
     Returns the number of tokens used by the messages
 
@@ -85,7 +86,7 @@ def get_batch_tokens(example: Dict, message_key: str, model="gpt-3.5-turbo-0613"
     return example
 
 
-def get_stringify_conversation(example: Dict, message_key: str) -> Dict:
+def get_stringify_conversation(example: DatasetDict, message_key: str) -> DatasetDict:
     """
     Converts messages into a single stringified conversation
     Adds to a HF dataset, to be used with HF dataset
@@ -105,7 +106,7 @@ def get_stringify_conversation(example: Dict, message_key: str) -> Dict:
     return example
 
 
-def get_num_convo(example: Dict) -> Dict:
+def get_num_convo(example: DatasetDict) -> DatasetDict:
     """
     Returns the number of chat conversations in multi turn conversations
 
@@ -119,7 +120,7 @@ def get_num_convo(example: Dict) -> Dict:
     return example
 
 
-def get_prompt(example: Dict, message_key: str) -> List:
+def get_prompt(example: DatasetDict, message_key: str) -> DatasetDict:
     """
     Converts multi turn conversations to single turn conversations that
     needs to be translated
@@ -172,7 +173,7 @@ def get_prompt(example: Dict, message_key: str) -> List:
         yield complete_prompt
 
 
-def get_translate_query(example: Dict, message_key: str) -> Dict:
+def get_translate_query(example: DatasetDict, message_key: str) -> DatasetDict:
 
     for message in example[message_key]:
         yield message['content']
