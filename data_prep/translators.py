@@ -15,7 +15,7 @@ from transformers import (
 from optimum.bettertransformer import BetterTransformer
 import google.generativeai as genai
 
-from .logger import DataPrepLogger
+from .utils.logger import DataPrepLogger
 logger = DataPrepLogger(__name__).get_logger()
 
 class BaseTranslator(ABC):
@@ -26,12 +26,15 @@ class BaseTranslator(ABC):
 
 class SeamlessM4TTranslator(BaseTranslator):
     def __init__(self, model_id: str) -> None:
+        self.model_id = model_id
+
+    def __call__(self):
         self.processor = AutoProcessor.from_pretrained(
-            model_id,
+            self.model_id,
             src_lang='eng'
         )
         self.model = SeamlessM4TForTextToText.from_pretrained(
-            model_id,
+            self.model_id,
             device_map='cuda:0',
             max_new_tokens=4096,
             torch_dtype=torch.bfloat16
@@ -128,14 +131,20 @@ class GeminiTranslator(BaseTranslator):
 
 
 class HFTranslator(BaseTranslator):
-    def __init__(self, model_id: str, prompt_template: str=None, **model_kwargs) -> None:
+    def __init__(self, model_id: str, prompt_template: str=None) -> None:
+        self.model_id = model_id
+        self.prompt_template = prompt_template
+
+    def __call__(self, **model_kwargs):
         tokenizer = AutoTokenizer.from_pretrained(
-            model_id,
+            self.model_id,
             fast=True,
             padding='max_length'
         )
+        logger.info(f'Recieved model kwargs: {model_kwargs}')
         model = AutoModelForCausalLM.from_pretrained(
-            model_id,
+            self.model_id,
+            device_map='cuda:0',
             **model_kwargs
         )
 
@@ -146,13 +155,15 @@ class HFTranslator(BaseTranslator):
         except Exception as err:
             logger.warn(f'Not able to convert the model to transformer. Skipping')
 
-        self.prompt_template = prompt_template
+        self.prompt_template = self.prompt_template
         if not self.prompt_template:
             self.prompt_template = dedent("""
             [INST] <<SYS>>
             You are an expert tranlator who traslates given text in English to colloquial Devnagri Hindi. You output nothing except the translation.
             <</SYS>>
-            Translate: {prompt}[/INST]
+            [/INST]
+            <|user|> Translate "{prompt}" into Devnagri Hindi
+            <|assistant|> Here is the translation in Hindi:
             """)
 
         self.pipe = pipeline(

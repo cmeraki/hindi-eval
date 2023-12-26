@@ -1,48 +1,17 @@
 import os
-import yaml
 import argparse
-from typing import Dict, List
 from datetime import datetime
 from datasets import load_dataset, DatasetDict
+from functools import partial
 
-from .translators import SeamlessM4TTranslator, GPTTranslator, GeminiTranslator, BaseTranslator
-from .logger import DataPrepLogger
+from .utils.logger import DataPrepLogger
+from .configs.translators import translator_engines
+from .configs.dataset import translation_datasets
 
 logger = DataPrepLogger(__name__).get_logger()
 
-def multi_turn_conv_processor(example: DatasetDict, message_key: str) -> DatasetDict:
-    to_translate = [msg['content'] for msg in example[message_key]]
-    example['flattened_messages'] = to_translate
-    return example
-
-def mmlu_processor(example: DatasetDict, column_names: List[str], translator: BaseTranslator, translator_name: str) -> DatasetDict:
-
-    to_translate = [example[col] for col in column_names]
-
-    translations = translator.translate(to_translate, batch_size=8)
-
-    for elem, col in zip(translations, column_names):
-        example[f'translated_response_{col}_{translator_name}'] = elem
-
-    return example
-
-def translator_processor(
-        example: Dict,
-        message_key: str,
-        translator: BaseTranslator,
-        translator_name: str
-) -> Dict:
-    example[f'translated_reponse_{translator_name}'] = translator.translate(example[message_key])
-    return example
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--config_dir',
-        help='Location of config dir',
-        type=str,
-        required=True
-    )
     parser.add_argument(
         '--save_path',
         default='./data/',
@@ -54,55 +23,58 @@ if __name__ == '__main__':
 
     logger.info(f'Running with args: {args}')
 
-    with open(os.path.join(args.config_dir, 'dataset.yml'), 'r') as fp:
-        dataset_config = yaml.safe_load(fp)
+    translators = [(t, c) for t, c in translator_engines.items() if c.enabled]
+    processing_datasets = [(d, c) for d, c in translation_datasets.items() if c.enabled]
 
-    t1 = SeamlessM4TTranslator(model_id='facebook/hf-seamless-m4t-large')
-    t2 = GPTTranslator(model_id='gpt-3.5-turbo-1106')
-    t3 = GeminiTranslator(model_id='gemini-pro')
+    logger.info(f'Translating {[d[0] for d in processing_datasets]} datasets using {[t[0] for t in translators]} models')
 
-    # Iterate over all datasets present
-    logger.info(f'Datasets mentioned in config: {len(dataset_config.keys())}')
+    # Iterate over all datasets enabled
+    for dataset_name, dataset_config in processing_datasets:
+        logger.info(f'Loading the dataset: {dataset_name}')
+        func = partial(load_dataset)
 
-    for dataset_name, dc in dataset_config.items():
-        if not dc['process']:
-            logger.info(f'Skipping {dataset_name} dataset')
-            continue
+        if dataset_config.config and dataset_config.config != '*':
+            func = partial(
+                func,
+                name=dataset_config.config
+            )
+        if dataset_config.split and dataset_config.split != '*':
+            func = partial(
+                func,
+                split=dataset_config.split
+            )
 
-        if 'config' in dc.keys():
-            dataset = load_dataset(dataset_name, dc['config'])
-        else:
-            dataset = load_dataset(dataset_name)
+        message_key = dataset_config.text_key
 
-        message_key = dc['text_key']
-        dataset = dataset[dc['split']].shuffle().select(range(int(dc['sample_size'])))
-        dataset = dataset.map(
-            lambda x: multi_turn_conv_processor(x, message_key),
-            num_proc=20
-        )
+        ds = func(dataset_config.dataset_id)
+        if dataset_config.sample_size != -1:
+            sample_size = min(dataset_config.sample_size, ds.num_rows)
+            logger.info(f'Selecting {sample_size} rows from the dataset')
+            ds = ds.shuffle().select(range(sample_size))
 
-        logger.info(f'Starting processing for seamless m4t')
-        dataset = dataset.map(
-            lambda x: translator_processor(x, 'flattened_messages', t1, 'm4t')
-        )
+        for preprocess_func in dataset_config.preprocess_func:
+            logger.info(f'Applying preprocessing functions to the dataset')
+            ds = ds.map(
+                lambda x: preprocess_func(x, message_key)
+            )
 
-        logger.info(f'Starting processing for GPT API')
-        dataset = dataset.map(
-            lambda x: translator_processor(x, 'flattened_messages', t2, 'gpt')
-        )
+        for translator_name, translator_config in translators:
+            logger.info(f'Starting translation on {translator_name}')
+            translator_config.engine() # initialize the engine
 
-        logger.info(f'Starting processing for Gemini API')
-        dataset = dataset.map(
-            lambda x: translator_processor(x, 'flattened_messages', t3, 'gemini')
-        )
+            ds = ds.map(
+                lambda x: dataset_config.transform_func(
+                    x, translator=translator_config.engine, translator_name=translator_name
+                )
+            )
 
         logger.info(os.path.join(
             args.save_path,
             'translation_eval',
-            datetime.strftime(datetime.now(), '%Y%m%d%H'),
+            datetime.strftime(datetime.now(), '%Y%m%d-%H%M'),
         ))
 
-        dataset.save_to_disk(
+        ds.save_to_disk(
             os.path.join(
                 args.save_path,
                 'translation_eval',

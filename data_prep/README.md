@@ -29,6 +29,9 @@ We want to publish a report on following tests which can evaluate any model for 
 
 - use gpt 4 to create math questions in hindi from all chapters in maths
 - general mental maths questions from open papers
+- Use gpt3.5 to generate q/a pairs and solution using CoT, use gpt4 to translate
+- Use mixtral to generate q/a pairs and solution using CoT, use gpt4 to translate
+- Use gpt4 to generate q/a pairs and solution in hindi directly
 
 ### Retrieval from context
 

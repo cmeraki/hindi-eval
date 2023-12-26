@@ -3,7 +3,7 @@ import openai
 import backoff
 from openai import OpenAI
 
-from .logger import DataPrepLogger
+from .utils.logger import DataPrepLogger
 
 logger = DataPrepLogger(__name__).get_logger()
 

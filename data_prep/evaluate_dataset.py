@@ -7,7 +7,7 @@ from typing import Dict
 from datasets import load_from_disk
 
 from .evaluators import GPTEvaluator
-from .logger import DataPrepLogger
+from .utils.logger import DataPrepLogger
 
 logger = DataPrepLogger(__name__).get_logger()
 

@@ -3,7 +3,7 @@ import tiktoken
 from typing import List
 from datasets import DatasetDict
 
-from .logger import DataPrepLogger
+from .utils.logger import DataPrepLogger
 
 logger = DataPrepLogger(__name__).get_logger()
 
