@@ -1,7 +1,7 @@
 import os
 import argparse
 from datetime import datetime
-from datasets import load_dataset, DatasetDict
+from datasets import load_dataset
 from functools import partial
 
 from .utils.logger import DataPrepLogger
@@ -78,6 +78,7 @@ if __name__ == '__main__':
             os.path.join(
                 args.save_path,
                 'translation_eval',
+                dataset_name,
                 datetime.strftime(datetime.now(), '%Y%m%d%H'),
             )
         )

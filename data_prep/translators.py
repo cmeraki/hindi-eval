@@ -162,7 +162,9 @@ class HFTranslator(BaseTranslator):
             You are an expert tranlator who traslates given text in English to colloquial Devnagri Hindi. You output nothing except the translation.
             <</SYS>>
             [/INST]
-            <|user|> Translate "{prompt}" into Devnagri Hindi
+            <|user|> Translate
+                <<{prompt}>>
+            into Devnagri Hindi
             <|assistant|> Here is the translation in Hindi:
             """)
 
@@ -180,7 +182,7 @@ class HFTranslator(BaseTranslator):
     def translate(self, source_text: List[str], batch_size: int=4) -> List[str]:
         to_translate = [f'{self.prompt_template.format(prompt=t)}' for t in source_text]
 
-        logger.info(f'First prompt sent to the model: {to_translate[0]}')
+        logger.debug(f'First prompt sent to the model: {to_translate[0]}')
         outputs = self.pipe(
             to_translate,
             batch_size=batch_size

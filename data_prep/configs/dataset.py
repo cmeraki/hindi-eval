@@ -40,7 +40,7 @@ translation_datasets = {
         enabled=True,
         split='train',
         sample_size=100,
-        transform_func=partial(mmlu_processor, column_names=['input', 'A', 'B', 'C', 'D'])
+        transform_func=partial(mmlu_processor, column_names=['input', 'A', 'B', 'C', 'D'], batch_size=1)
     ),
     'mmlu_train_high_school_microeconomics': TranslationDatasets(
         dataset_id='lukaemon/mmlu',
@@ -48,6 +48,6 @@ translation_datasets = {
         enabled=True,
         split='train',
         sample_size=100,
-        transform_func=partial(mmlu_processor, column_names=['input', 'A', 'B', 'C', 'D'])
+        transform_func=partial(mmlu_processor, column_names=['input', 'A', 'B', 'C', 'D'], batch_size=1)
     ),
 }
