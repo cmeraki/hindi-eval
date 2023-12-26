@@ -1,7 +1,9 @@
 import os
+import gc
 import argparse
 from datetime import datetime
-from datasets import load_dataset
+from torch.cuda import empty_cache
+from datasets import load_dataset, get_dataset_config_names
 from functools import partial
 
 from .utils.logger import DataPrepLogger
@@ -27,58 +29,66 @@ if __name__ == '__main__':
     processing_datasets = [(d, c) for d, c in translation_datasets.items() if c.enabled]
 
     logger.info(f'Translating {[d[0] for d in processing_datasets]} datasets using {[t[0] for t in translators]} models')
+    run_time = datetime.strftime(datetime.now(), '%Y%m%d-%H%M')
 
-    # Iterate over all datasets enabled
-    for dataset_name, dataset_config in processing_datasets:
-        logger.info(f'Loading the dataset: {dataset_name}')
-        func = partial(load_dataset)
+    for translator_name, translator_config in translators:
+        logger.info(f'Starting translation on {translator_name}')
 
-        if dataset_config.config and dataset_config.config != '*':
-            func = partial(
-                func,
-                name=dataset_config.config
-            )
-        if dataset_config.split and dataset_config.split != '*':
-            func = partial(
-                func,
-                split=dataset_config.split
-            )
+        # initialize the engine
+        translator_config.engine(**translator_config.kwargs)
 
-        message_key = dataset_config.text_key
+        # Iterate over all datasets enabled
+        for dataset_name, dataset_config in processing_datasets:
 
-        ds = func(dataset_config.dataset_id)
-        if dataset_config.sample_size != -1:
-            sample_size = min(dataset_config.sample_size, ds.num_rows)
-            logger.info(f'Selecting {sample_size} rows from the dataset')
-            ds = ds.shuffle().select(range(sample_size))
+            confs = get_dataset_config_names(dataset_config.dataset_id)
+            if '*' not in dataset_config.config:
+                confs_not_found = [c for c in dataset_config.config if c not in confs]
+                assert len(confs_not_found) == 0, f'{len(confs_not_found)} configs ({confs_not_found}) not found in dataset config on hugginface'
+                confs = dataset_config.config
 
-        for preprocess_func in dataset_config.preprocess_func:
-            logger.info(f'Applying preprocessing functions to the dataset')
-            ds = ds.map(
-                lambda x: preprocess_func(x, message_key)
-            )
+            logger.info(f'{len(confs)} configs of the dataset will be loaded')
 
-        for translator_name, translator_config in translators:
-            logger.info(f'Starting translation on {translator_name}')
-            translator_config.engine() # initialize the engine
+            # Iterate over all configs mentioned
+            for conf in confs:
+                logger.info(f'Loading the dataset: {dataset_name} with config {conf}')
+                func = partial(load_dataset)
 
-            ds = ds.map(
-                lambda x: dataset_config.transform_func(
-                    x, translator=translator_config.engine, translator_name=translator_name
+                if dataset_config.split and dataset_config.split != '*':
+                    func = partial(func, split=dataset_config.split)
+
+                message_key = dataset_config.text_key
+
+                ds = func(dataset_config.dataset_id, conf)
+
+                if dataset_config.sample_size != -1:
+                    sample_size = min(dataset_config.sample_size, ds.num_rows)
+                    logger.info(f'Selecting {sample_size} rows from the dataset')
+                    ds = ds.shuffle().select(range(sample_size))
+
+                for preprocess_func in dataset_config.preprocess_func:
+                    logger.info(f'Applying preprocessing functions to the dataset')
+                    ds = ds.map(
+                        lambda x: preprocess_func(x, message_key)
+                    )
+
+                ds = ds.map(
+                    lambda x: dataset_config.transform_func(
+                        x, translator=translator_config.engine, translator_name=translator_name
+                    )
                 )
-            )
 
-        logger.info(os.path.join(
-            args.save_path,
-            'translation_eval',
-            datetime.strftime(datetime.now(), '%Y%m%d-%H%M'),
-        ))
+                logger.info('Saving the dataset')
 
-        ds.save_to_disk(
-            os.path.join(
-                args.save_path,
-                'translation_eval',
-                dataset_name,
-                datetime.strftime(datetime.now(), '%Y%m%d%H'),
-            )
-        )
+                ds.save_to_disk(
+                    os.path.join(
+                        args.save_path,
+                        'translation_eval',
+                        run_time,
+                        f'{translator_name}_{dataset_name}',
+                        conf if conf != '*' else 'all',
+                    )
+                )
+
+        del (translator_config.engine)
+        empty_cache()
+        gc.collect()

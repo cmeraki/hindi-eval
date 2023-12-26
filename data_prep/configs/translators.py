@@ -29,8 +29,9 @@ translator_engines = {
         engine=SeamlessM4TTranslator('facebook/hf-seamless-m4t-large'),
         enabled=False
     ),
-    'llama-7b': Translators(
+    'llama_7b_gptq': Translators(
         engine=HFTranslator('TheBloke/Llama-2-7B-Chat-GPTQ'),
         enabled=True,
+        kwargs={'use_flash_attention_2': True}
     )
 }

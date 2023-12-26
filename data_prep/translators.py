@@ -139,8 +139,11 @@ class HFTranslator(BaseTranslator):
         tokenizer = AutoTokenizer.from_pretrained(
             self.model_id,
             fast=True,
-            padding='max_length'
+            padding='longest'
         )
+        tokenizer.padding_side = 'left'
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
         logger.info(f'Recieved model kwargs: {model_kwargs}')
         model = AutoModelForCausalLM.from_pretrained(
             self.model_id,
@@ -176,18 +179,21 @@ class HFTranslator(BaseTranslator):
             repetition_penalty=1.1
         )
 
-        self.pipe.tokenizer.padding_side = 'left'
-        self.pipe.tokenizer.pad_token_id = model.config.eos_token_id
-
     def translate(self, source_text: List[str], batch_size: int=4) -> List[str]:
         to_translate = [f'{self.prompt_template.format(prompt=t)}' for t in source_text]
 
-        logger.debug(f'First prompt sent to the model: {to_translate[0]}')
-        outputs = self.pipe(
-            to_translate,
-            batch_size=batch_size
-        )
+        try:
+            outputs = self.pipe(
+                to_translate,
+                batch_size=batch_size
+            )
 
-        empty_cache()
+            return [o[0]['generated_text'][len(i):] for i, o in zip(to_translate, outputs)]
 
-        return [o[0]['generated_text'][len(i):] for i, o in zip(to_translate, outputs)]
+        except Exception as err:
+            logger.error(f'Not able to execute the batch: {err}')
+            return ['NOT_TRANSLATED'] * len(to_translate)
+
+        finally:
+            empty_cache()
+
