@@ -40,6 +40,14 @@ translation_datasets = {
         sample_size=-1,
         enabled=True,
         config=['*'],
+        split='train',
+        transform_func=partial(mmlu_processor, column_names=['input', 'A', 'B', 'C', 'D'], batch_size=2)
+    ),
+    'mmlu_test': TranslationDatasets(
+        dataset_id='lukaemon/mmlu',
+        sample_size=-1,
+        enabled=True,
+        config=['*'],
         split='test',
         transform_func=partial(mmlu_processor, column_names=['input', 'A', 'B', 'C', 'D'], batch_size=2)
     ),
