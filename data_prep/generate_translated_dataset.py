@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--save_path',
         default='./data/',
-        help='Location of config dir',
+        help='Location of path to save the generated dataset',
         type=str,
         required=False
     )
