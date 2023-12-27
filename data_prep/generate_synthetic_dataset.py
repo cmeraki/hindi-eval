@@ -70,7 +70,7 @@ class GPTGenerator():
         )
 
         if completions.choices[0].finish_reason == 'length':
-            raise IOError('Reached maximum output length, output format is not reliable')
+            raise IOError(f'Reached maximum output length, output format is not reliable. {completions.choices[0].message.content}')
 
         op = json.loads(completions.choices[0].message.content)
 
@@ -132,9 +132,8 @@ if __name__ == '__main__':
             except Exception as err:
                 logger.error(f'Raised error: {err}')
 
-
         generated_dataset = Dataset.from_list(generated_dataset)
-        logger.info(f'Number of rows: {generated_dataset.num_rows()}')
+        logger.info(f'Number of rows: {generated_dataset.num_rows}')
         generated_dataset.save_to_disk(
             os.path.join(
                 args.save_path,
