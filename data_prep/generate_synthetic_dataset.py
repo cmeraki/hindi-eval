@@ -37,7 +37,7 @@ def get_sys_prompt(base_prompt: str, reference_dataset: Dict, required_format: s
     sys_prompt = {
         'role': 'system',
         'content': base_prompt.format(
-            language='Devnagri Hindi',
+            language='either Devnagri Hindi or Romanized Hindi',
             subject=subject,
             grade=grade,
             topic=topic,
