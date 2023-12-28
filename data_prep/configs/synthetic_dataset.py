@@ -20,7 +20,7 @@ class MCQResponse(BaseModel):
 
 @dataclass
 class GenerationConfiguration:
-    model_id: str = 'gpt-3.5-turbo-1106'
+    model_id: str = 'gpt-4-1106-preview'
     temperature: float = 1.4
 
 
@@ -236,7 +236,7 @@ synthetic_dataset_subjects = {
 synthetic_dataset_models = {
     'general_mcq': SyntheticDatasets(
         name='general_mcq',
-        sample_size=50,
+        sample_size=500,
         system_prompt=SystemPrompt.hindi_mcq,
         reference_dataset=synthetic_dataset_subjects,
         response_model=MCQResponse,
