@@ -84,7 +84,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '--save_path',
-        default='./synthetic_data/',
+        default='./data/synthetic_data/',
         help='Location of config dir',
         type=str,
         required=False
