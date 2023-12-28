@@ -20,7 +20,7 @@ class MCQResponse(BaseModel):
 
 @dataclass
 class GenerationConfiguration:
-    model_id: str = 'gpt-3.5-turbo-1106'
+    model_id: str = 'gpt-4-1106-preview'
     temperature: float = 1.4
 
 
@@ -70,7 +70,6 @@ synthetic_dataset_subjects = {
             "Magnetic Effects of Current and Magnetism",
             "Electromagnetic Induction and Alternating Currents",
             "Electromagnetic Waves",
-            "Optics",
             "Dual Nature of Radiation and Matter",
             "Atoms and Nuclei",
             "Electronic Devices",
@@ -83,14 +82,12 @@ synthetic_dataset_subjects = {
             "Basic Operations (Addition, Subtraction, Multiplication, Division)",
             "Fractions and Decimals",
             "Measurement (Length, Weight, Volume)",
-            "Geometry (Basic Shapes, Angles)",
             "Introduction to Algebra (Simple Equations)",
             "Data Handling and Graphs"
         ],
         "8th Grade": [
             "Rational Numbers",
             "Linear Equations in One Variable",
-            "Understanding Quadrilaterals and Practical Geometry",
             "Data Handling and Probability",
             "Squares and Square Roots, Cubes and Cube Roots",
             "Comparing Quantities (Percentage, Profit and Loss)",
@@ -103,10 +100,6 @@ synthetic_dataset_subjects = {
             "Pair of Linear Equations in Two Variables",
             "Quadratic Equations",
             "Arithmetic Progressions",
-            "Triangles",
-            "Coordinate Geometry",
-            "Introduction to Trigonometry and its Applications",
-            "Circles",
             "Constructions",
             "Areas Related to Circles",
             "Surface Areas and Volumes",
@@ -122,10 +115,8 @@ synthetic_dataset_subjects = {
             "Continuity and Differentiability",
             "Application of Derivatives",
             "Integrals",
-            "Application of the Integrals",
             "Differential Equations",
             "Vector Algebra",
-            "Three-dimensional Geometry"
         ]
     },
     "Chemistry": {
@@ -159,10 +150,8 @@ synthetic_dataset_subjects = {
             "Electrochemistry",
             "Chemical Kinetics",
             "Surface Chemistry",
-            "General Principles and Processes of Isolation of Elements",
             "p-Block Elements",
             "d and f Block Elements",
-            "Coordination Compounds",
             "Haloalkanes and Haloarenes",
             "Alcohols, Phenols, and Ethers",
             "Aldehydes, Ketones, and Carboxylic Acids",
@@ -187,7 +176,6 @@ synthetic_dataset_subjects = {
             "Conservation of Plants and Animals",
             "Cell Structure and Functions",
             "Reproduction in Animals",
-            "Reaching the Age of Adolescence",
             "Food Production and Management"
         ],
         "10th Grade": [
@@ -202,18 +190,13 @@ synthetic_dataset_subjects = {
             "Reproduction in Organisms",
             "Sexual Reproduction in Flowering Plants",
             "Human Reproduction",
-            "Reproductive Health",
-            "Principles of Inheritance and Variation",
             "Molecular Basis of Inheritance",
             "Evolution",
             "Human Health and Disease",
             "Strategies for Enhancement in Food Production",
-            "Microbes in Human Welfare",
             "Biotechnology: Principles and Processes",
-            "Biotechnology and Its Applications",
             "Organisms and Populations",
             "Ecosystem",
-            "Biodiversity and Conservation",
             "Environmental Issues"
         ]
     },
@@ -237,17 +220,14 @@ synthetic_dataset_subjects = {
         "10th Grade": [
             "Speed Mathematics Techniques",
             "Advanced Algebraic Expressions and Equations",
-            "Geometry and Trigonometry Basics",
             "Probability and Statistics Fundamentals",
             "Time, Distance, and Work Problems",
             "Mental Calculations in Practical Life Scenarios"
         ],
         "12th Grade": [
             "Advanced Arithmetic and Algebra Techniques",
-            "Calculus Basics (Limits, Derivatives)",
             "Advanced Geometry and Trigonometry",
             "Mathematical Reasoning and Logic",
-            "Complex Numbers and Quadratic Equations",
             "Data Interpretation and Analysis Techniques"
         ]
     }
@@ -256,7 +236,7 @@ synthetic_dataset_subjects = {
 synthetic_dataset_models = {
     'general_mcq': SyntheticDatasets(
         name='general_mcq',
-        sample_size=10,
+        sample_size=500,
         system_prompt=SystemPrompt.hindi_mcq,
         reference_dataset=synthetic_dataset_subjects,
         response_model=MCQResponse,

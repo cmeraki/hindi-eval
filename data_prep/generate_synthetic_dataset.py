@@ -10,7 +10,7 @@ import openai
 import backoff
 import numpy as np
 from tqdm import tqdm
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 from datetime import datetime
 from datasets import Dataset
 from argparse import ArgumentParser
@@ -37,7 +37,7 @@ def get_sys_prompt(base_prompt: str, reference_dataset: Dict, required_format: s
     sys_prompt = {
         'role': 'system',
         'content': base_prompt.format(
-            language='Devnagri Hindi',
+            language='either Devnagri Hindi or Romanized Hindi',
             subject=subject,
             grade=grade,
             topic=topic,
@@ -47,6 +47,14 @@ def get_sys_prompt(base_prompt: str, reference_dataset: Dict, required_format: s
 
     return sys_prompt, {'SUBJECT': subject, 'GRADE': grade, 'TOPIC': topic}
 
+
+def synth_save_to_disk(base_path: str, generated_dataset: List):
+    d = Dataset.from_list(generated_dataset)
+    logger.info(f'Number of rows: {d.num_rows}')
+
+    d.save_to_disk(
+        os.path.join(base_path)
+    )
 
 class GPTGenerator():
     def __init__(self, model_id) -> None:
@@ -126,18 +134,20 @@ if __name__ == '__main__':
                 generated_dataset.append(datapoint)
                 logger.debug(f'Used cumulative tokens: {total_usage}')
 
+                if idx % 10 == 0:
+                    synth_save_to_disk(
+                        base_path=os.path.join(
+                            args.save_path, run_time, f'{synth_ds_name}'),
+                        generated_dataset=generated_dataset
+                    )
+
             except openai.RateLimitError as err:
                 logger.error(f'Reached rate limit: {err}')
                 break
             except Exception as err:
                 logger.error(f'Raised error: {err}')
 
-        generated_dataset = Dataset.from_list(generated_dataset)
-        logger.info(f'Number of rows: {generated_dataset.num_rows}')
-        generated_dataset.save_to_disk(
-            os.path.join(
-                args.save_path,
-                run_time,
-                f'{synth_ds_name}'
-            )
+        synth_save_to_disk(
+            base_path=os.path.join(args.save_path, run_time, f'{synth_ds_name}'),
+            generated_dataset=generated_dataset
         )
