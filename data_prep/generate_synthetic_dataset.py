@@ -74,7 +74,8 @@ class GPTGenerator():
             model=self.model_id,
             response_format={'type': 'json_object'},
             messages=messages,
-            temperature=temperature
+            temperature=temperature,
+            max_tokens=2048
         )
 
         if completions.choices[0].finish_reason == 'length':
@@ -82,8 +83,8 @@ class GPTGenerator():
 
         op = json.loads(completions.choices[0].message.content)
 
+        logger.debug(f'System prompt: {system_prompt}, output: {op}')
         logger.debug(f'Tokens used in generation using {self.model_id}: {completions.usage}')
-        # logger.debug(f'Completion output from Open AI APIs: {completions}')
 
         return op, completions.usage
 
@@ -123,8 +124,6 @@ if __name__ == '__main__':
                 )
                 total_usage['input'] += usage.prompt_tokens
                 total_usage['output'] += usage.completion_tokens
-
-                logger.debug(f'Return datapoint: {datapoint}')
 
                 assert synth_ds.response_model.model_validate(datapoint), "Response by the model is not in the valid dataform"
 

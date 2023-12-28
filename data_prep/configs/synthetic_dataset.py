@@ -58,21 +58,14 @@ synthetic_dataset_subjects = {
             "Work, Energy, and Power",
             "Laws of Motion",
             "Gravitation",
-            "Thermodynamics",
             "Electricity",
             "Magnetic Effects of Electric Current",
             "Optics",
-            "Atomic and Nuclear Physics"
         ],
         "12th Grade": [
-            "Electrostatics",
             "Current Electricity",
             "Magnetic Effects of Current and Magnetism",
-            "Electromagnetic Induction and Alternating Currents",
             "Electromagnetic Waves",
-            "Dual Nature of Radiation and Matter",
-            "Atoms and Nuclei",
-            "Electronic Devices",
             "Communication Systems"
         ]
     },
@@ -83,7 +76,9 @@ synthetic_dataset_subjects = {
             "Fractions and Decimals",
             "Measurement (Length, Weight, Volume)",
             "Introduction to Algebra (Simple Equations)",
-            "Data Handling and Graphs"
+            "Basic Arithmetic (Addition, Subtraction, Multiplication, Division)",
+            "Simple Fractions and Decimals",
+            "Time and Calendar Calculations",
         ],
         "8th Grade": [
             "Rational Numbers",
@@ -92,7 +87,12 @@ synthetic_dataset_subjects = {
             "Squares and Square Roots, Cubes and Cube Roots",
             "Comparing Quantities (Percentage, Profit and Loss)",
             "Algebraic Expressions and Identities",
-            "Mensuration (Areas and Volumes)"
+            "Mensuration (Areas and Volumes)",
+            "Advanced Arithmetic Operations",
+            "Working with Fractions, Decimals, and Percentages",
+            "Basic Algebraic Operations",
+            "Ratios and Proportions",
+            "Simple Interest and Compound Interest Calculations"
         ],
         "10th Grade": [
             "Real Numbers",
@@ -100,23 +100,13 @@ synthetic_dataset_subjects = {
             "Pair of Linear Equations in Two Variables",
             "Quadratic Equations",
             "Arithmetic Progressions",
-            "Constructions",
-            "Areas Related to Circles",
-            "Surface Areas and Volumes",
-            "Statistics and Probability"
+            "Statistics and Probability",
+            "Probability and Statistics Fundamentals",
+            "Time, Distance, and Work Problems",
         ],
         "12th Grade": [
-            "Relations and Functions",
-            "Algebra (Matrices, Determinants)",
-            "Calculus (Limits, Derivatives, Integrals, Differential Equations)",
-            "Vectors and Three-Dimensional Geometry",
             "Linear Programming",
             "Probability",
-            "Continuity and Differentiability",
-            "Application of Derivatives",
-            "Integrals",
-            "Differential Equations",
-            "Vector Algebra",
         ]
     },
     "Chemistry": {
@@ -134,31 +124,6 @@ synthetic_dataset_subjects = {
             "Metals and Non-metals",
             "Carbon and Its Compounds",
             "Pollution and Its Control"
-        ],
-        "10th Grade": [
-            "Chemical Reactions and Equations",
-            "Acids, Bases, and Salts",
-            "Metals and Non-metals",
-            "Carbon and Its Compounds",
-            "Periodic Classification of Elements",
-            "Basic Principles of Organic Chemistry",
-            "Environmental Chemistry"
-        ],
-        "12th Grade": [
-            "Solid State",
-            "Solutions",
-            "Electrochemistry",
-            "Chemical Kinetics",
-            "Surface Chemistry",
-            "p-Block Elements",
-            "d and f Block Elements",
-            "Haloalkanes and Haloarenes",
-            "Alcohols, Phenols, and Ethers",
-            "Aldehydes, Ketones, and Carboxylic Acids",
-            "Organic Compounds Containing Nitrogen",
-            "Biomolecules",
-            "Polymers",
-            "Chemistry in Everyday Life"
         ]
     },
     "Biology": {
@@ -177,58 +142,6 @@ synthetic_dataset_subjects = {
             "Cell Structure and Functions",
             "Reproduction in Animals",
             "Food Production and Management"
-        ],
-        "10th Grade": [
-            "Life Processes",
-            "Control and Coordination in Animals and Plants",
-            "How do Organisms Reproduce?",
-            "Heredity and Evolution",
-            "Our Environment",
-            "Management of Natural Resources"
-        ],
-        "12th Grade": [
-            "Reproduction in Organisms",
-            "Sexual Reproduction in Flowering Plants",
-            "Human Reproduction",
-            "Molecular Basis of Inheritance",
-            "Evolution",
-            "Human Health and Disease",
-            "Strategies for Enhancement in Food Production",
-            "Biotechnology: Principles and Processes",
-            "Organisms and Populations",
-            "Ecosystem",
-            "Environmental Issues"
-        ]
-    },
-    "Mental Maths": {
-        "5th Grade": [
-            "Basic Arithmetic (Addition, Subtraction, Multiplication, Division)",
-            "Simple Fractions and Decimals",
-            "Estimation Techniques",
-            "Basic Geometric Shapes and Their Properties",
-            "Time and Calendar Calculations",
-            "Mental Calculation Strategies"
-        ],
-        "8th Grade": [
-            "Advanced Arithmetic Operations",
-            "Working with Fractions, Decimals, and Percentages",
-            "Mental Estimation and Approximation",
-            "Basic Algebraic Operations",
-            "Ratios and Proportions",
-            "Simple Interest and Compound Interest Calculations"
-        ],
-        "10th Grade": [
-            "Speed Mathematics Techniques",
-            "Advanced Algebraic Expressions and Equations",
-            "Probability and Statistics Fundamentals",
-            "Time, Distance, and Work Problems",
-            "Mental Calculations in Practical Life Scenarios"
-        ],
-        "12th Grade": [
-            "Advanced Arithmetic and Algebra Techniques",
-            "Advanced Geometry and Trigonometry",
-            "Mathematical Reasoning and Logic",
-            "Data Interpretation and Analysis Techniques"
         ]
     }
 }
@@ -236,7 +149,7 @@ synthetic_dataset_subjects = {
 synthetic_dataset_models = {
     'general_mcq': SyntheticDatasets(
         name='general_mcq',
-        sample_size=500,
+        sample_size=50,
         system_prompt=SystemPrompt.hindi_mcq,
         reference_dataset=synthetic_dataset_subjects,
         response_model=MCQResponse,
