@@ -124,13 +124,6 @@ if __name__ == '__main__':
 
                 logger.debug(f'Used cumulative tokens: {total_usage}')
 
-                if idx % 10 == 0:
-                    synth_save_to_disk(
-                        base_path=os.path.join(
-                            args.save_path, run_time, f'{synth_ds_name}'),
-                        generated_dataset=generated_dataset
-                    )
-
             except openai.RateLimitError as err:
                 logger.error(f'Reached rate limit: {err}')
                 break
@@ -138,6 +131,12 @@ if __name__ == '__main__':
                 logger.error(f'Raised error: {err}')
 
             finally:
+                if idx % 10 == 0:
+                    synth_save_to_disk(
+                        base_path=os.path.join(
+                            args.save_path, run_time, f'{synth_ds_name}'),
+                        generated_dataset=generated_dataset
+                    )
                 idx += 1
 
         synth_save_to_disk(

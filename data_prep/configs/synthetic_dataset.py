@@ -39,7 +39,7 @@ class RetrievalMCQResponse(BaseModel):
     TYPE: str
     CHOICES: Optional[List] = []
     TARGET: Any
-    LANGUAGE: str
+    LANGUAGE: Optional[str] = None
     PASSAGE_LINK: Optional[str] = None
 
 class MultiRetrievalMCQResponse(BaseModel):
