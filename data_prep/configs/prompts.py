@@ -14,6 +14,6 @@ class SystemPrompt:
         You are given a small passage in Devnagri Hindi. You have to generate a total of {num_ques} questions consisting of:
             1. MCQ question based on the passage
             2. True/False question based on the passage
-            3. Fill in the blanks based on the passage
+            3. One word fill in the blanks based on the passage
         You always output in {language} and in JSON format. For the response, follow the format {required_format}
     """).strip()

@@ -8,7 +8,6 @@ import os
 import json
 import openai
 import backoff
-from tqdm import tqdm
 from typing import Tuple, Dict, List
 from datetime import datetime
 from argparse import ArgumentParser
@@ -29,11 +28,14 @@ def synth_save_to_disk(base_path: str, generated_dataset: List):
         generated_dataset (List): Each element should be a valid Dict
     """
 
+    os.makedirs(base_path, exist_ok=True)
+
     logger.info(f'Number of rows: {len(generated_dataset)}')
 
-    with open(os.path.join(base_path, 'dataset.jsonl'), 'a+') as fp:
+    with open(os.path.join(base_path, 'dataset.jsonl'), 'a', encoding='utf-8') as fp:
         while generated_dataset:
-            fp.write(generated_dataset.pop())
+            fp.write(json.dumps(generated_dataset.pop(), ensure_ascii=False))
+            fp.write('\n')
 
 class GPTGenerator():
     def __init__(self, model_id) -> None:
@@ -94,9 +96,8 @@ if __name__ == '__main__':
         generated_dataset = []
         logger.info(f'Generating synthetic dataset for {synth_ds_name}')
 
-        for idx in tqdm(range(synth_ds.sample_size)):
-            messages, metadata = synth_ds.preprocess_func(synth_ds.system_prompt, synth_ds.reference_dataset, synth_ds.required_format)
-
+        idx = 0
+        for messages, metadata in synth_ds.preprocess_func(synth_ds.system_prompt, synth_ds.reference_dataset, synth_ds.required_format, synth_ds.sample_size):
             try:
                 datapoint, usage = generator(
                     messages=messages,
@@ -105,12 +106,22 @@ if __name__ == '__main__':
                 total_usage['input'] += usage.prompt_tokens
                 total_usage['output'] += usage.completion_tokens
 
-                assert synth_ds.response_model.model_validate(datapoint), "Response by the model is not in the valid dataform"
+                if synth_ds.output_type.value == 'multi': # if a single prompt is used to generate multiple questions, datapoint will have 1 key with a list as value
+                    logger.debug(f'Processing multi point dataset')
+                    assert synth_ds.response_model.model_validate(datapoint), "Response by the model is not in the valid schema"
 
-                datapoint.update({
-                    **metadata
-                })
-                generated_dataset.append(datapoint)
+                    for _, v in datapoint.items():
+                        for d in v:
+                            d.update({**metadata})
+                            generated_dataset.append(d)
+
+                else: # datapoint in itself has a single question/answer
+                    assert synth_ds.response_model.model_validate(datapoint), "Response by the model is not in the valid schema"
+                    datapoint.update({
+                        **metadata
+                    })
+                    generated_dataset.append(datapoint)
+
                 logger.debug(f'Used cumulative tokens: {total_usage}')
 
                 if idx % 10 == 0:
@@ -125,6 +136,9 @@ if __name__ == '__main__':
                 break
             except Exception as err:
                 logger.error(f'Raised error: {err}')
+
+            finally:
+                idx += 1
 
         synth_save_to_disk(
             base_path=os.path.join(args.save_path, run_time, f'{synth_ds_name}'),

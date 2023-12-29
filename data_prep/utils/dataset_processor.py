@@ -1,23 +1,13 @@
 import json
 import numpy as np
+from tqdm import tqdm
 from typing import Dict, List
 from datasets import DatasetDict, Dataset
 
 from .logger import DataPrepLogger
 from ..translators import BaseTranslator
 
-logger = DataPrepLogger.get_logger(__name__)
-
-with open('../../data/retrieval/cleaned_dataset/dataset.jsonl', 'r') as fp:
-    x = fp.read()
-    d = []
-
-    for ln in x.split('\n'):
-        if not ln:
-            continue
-        d.append(json.loads(ln))
-
-    retrieval_base = Dataset().from_list(d)
+logger = DataPrepLogger(__name__).get_logger()
 
 
 def multi_turn_conv_processor(example: DatasetDict, message_key: str) -> DatasetDict:
@@ -48,46 +38,74 @@ def translator_processor(
     return example
 
 
-def get_synthetic_data_sys_prompt(base_prompt: str, reference_dataset: Dict, required_format: str) -> Dict:
-    subject = np.random.choice(
-        list(reference_dataset.keys())
-    )
-    grade = np.random.choice(
-        list(reference_dataset[subject].keys())
-    )
-    topic = np.random.choice(
-        reference_dataset[subject][grade]
-    )
+def get_synthetic_data_sys_prompt(
+        base_prompt: str,
+        reference_dataset: Dict,
+        required_format: str,
+        sample_size: int
+    ) -> Dict:
 
-    logger.debug(f'Metadata for the prompt: {subject}, {grade}, {topic}')
-
-    sys_prompt = {
-        'role': 'system',
-        'content': base_prompt.format(
-            language='either Devnagri Hindi or Romanized Hindi',
-            subject=subject,
-            grade=grade,
-            topic=topic,
-            required_format=required_format
+    for idx in tqdm(range(sample_size), total=sample_size):
+        subject = np.random.choice(
+            list(reference_dataset.keys())
         )
-    }
+        grade = np.random.choice(
+            list(reference_dataset[subject].keys())
+        )
+        topic = np.random.choice(
+            reference_dataset[subject][grade]
+        )
 
-    return [sys_prompt], {'SUBJECT': subject, 'GRADE': grade, 'TOPIC': topic}
+        logger.debug(f'Metadata for the {idx} prompt: {subject}, {grade}, {topic}')
+
+        sys_prompt = {
+            'role': 'system',
+            'content': base_prompt.format(
+                language='either Devnagri Hindi or Romanized Hindi',
+                subject=subject,
+                grade=grade,
+                topic=topic,
+                required_format=required_format
+            )
+        }
+
+        yield [sys_prompt], {'SUBJECT': subject, 'GRADE': grade, 'TOPIC': topic}
 
 
-def get_retreival_data_sys_prompt(base_prompt: str, reference_dataset: Dict, required_format: str) -> Dict:
+def get_retreival_data_sys_prompt(
+        base_prompt: str,
+        reference_dataset: Dict,
+        required_format: str,
+        sample_size: int
+    ) -> Dict:
     sys_prompt = {
         'role': 'system',
         'content': base_prompt.format(
-            num_ques=5,
+            num_ques=15,
             language='Devnagri Hindi or Romanized Hindi',
             required_format=required_format
         )
     }
 
-    usr_prompt = {
-        'role': 'user',
-        'content': retrieval_base.shuffle().select(range(1))['content']
-    }
+    with open('./data/retrieval/cleaned_dataset/dataset.jsonl', 'r') as fp:
+        x = fp.read()
+        d = []
 
-    return [sys_prompt, usr_prompt], {'PASSAGE': usr_prompt['content']}
+        for ln in x.split('\n'):
+            if not ln:
+                continue
+            d.append(json.loads(ln))
+
+        retrieval_base = Dataset.from_list(d)
+
+    sample = retrieval_base.shuffle().select(range(sample_size))
+
+    for idx in tqdm(range(sample_size), total=sample_size):
+        usr_prompt = {
+            'role': 'user',
+            'content': sample['content'][0].replace('\u200b', '')
+        }
+
+        logger.debug(f"Metadata for {idx} prompt: {sample['link'][0]}")
+
+        yield [sys_prompt, usr_prompt], {'PASSAGE_LINK': sample['link'][0]}

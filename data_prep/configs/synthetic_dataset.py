@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Dict, Type, List
+from typing import Optional, Dict, Type, List, Union, Any
 from pydantic import BaseModel
 from dataclasses import dataclass
 from textwrap import dedent
@@ -36,18 +36,24 @@ class RetrievalMCQResponse(BaseModel):
         fill_in_the_blanks = "fill_in_the_blanks"
 
     QUESTION: str
-    TYPE: QUESTION_TYPES
-    CHOICES: List[str]
-    TARGET: int
-    LANGUAGE: LANGUAGE
-    PASSAGE: Optional[str] = None
+    TYPE: str
+    CHOICES: Optional[List] = []
+    TARGET: Any
+    LANGUAGE: str
+    PASSAGE_LINK: Optional[str] = None
 
+class MultiRetrievalMCQResponse(BaseModel):
+    RESPONSE: List[RetrievalMCQResponse]
 
 @dataclass
 class GenerationConfiguration:
-    model_id: str = 'gpt-3.5-turbo-0613'
+    model_id: str = 'gpt-3.5-turbo-1106'
     temperature: float = 1.4
 
+
+class OutputType(Enum):
+    single = 'single'
+    multi = 'multi'
 
 class SyntheticDatasets(BaseModel):
     name: str
@@ -59,6 +65,7 @@ class SyntheticDatasets(BaseModel):
     response_model: Type[BaseModel]
     required_format: str
     preprocess_func: Optional[object] = None # Only 1 preprocess func allowed, return system prompt and metadata dict
+    output_type: OutputType = 'single'
 
 
 synthetic_dataset_subjects = {
@@ -190,16 +197,17 @@ synthetic_dataset_models = {
         enabled=True,
         sample_size=50,
         system_prompt=SystemPrompt.retrieval_questions,
-        response_model=RetrievalMCQResponse,
+        response_model=MultiRetrievalMCQResponse,
         required_format=dedent("""
-            {
+            'RESPONSE': [{
                 'QUESTION': <str>,
                 'TYPE': <Enum (mcq, true_false, fill_in_the_blanks)>
                 'CHOICES': <List>,
                 'TARGET': <int>,
                 'LANGUAGE': <Enum (english, devnagri_hindi, hinglish, romanized_hindi)>
-            }
+            }]
         """).strip(),
-        preprocess_func=get_retreival_data_sys_prompt
+        preprocess_func=get_retreival_data_sys_prompt,
+        output_type=OutputType.multi
     )
 }
