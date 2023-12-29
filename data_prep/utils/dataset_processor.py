@@ -98,14 +98,16 @@ def get_retreival_data_sys_prompt(
 
         retrieval_base = Dataset.from_list(d)
 
-    sample = retrieval_base.shuffle().select(range(sample_size))
+    samples = retrieval_base.shuffle().select(range(sample_size))
 
-    for idx in tqdm(range(sample_size), total=sample_size):
+    idx = 0
+    for sample in tqdm(iter(samples), total=sample_size):
         usr_prompt = {
             'role': 'user',
-            'content': sample['content'][0].replace('\u200b', '')
+            'content': sample['content'].replace('\u200b', '')
         }
 
-        logger.debug(f"Metadata for {idx} prompt: {sample['link'][0]}")
+        logger.debug(f"Metadata for {idx} prompt: {sample['link']}")
 
-        yield [sys_prompt, usr_prompt], {'PASSAGE_LINK': sample['link'][0]}
+        yield [sys_prompt, usr_prompt], {'PASSAGE_LINK': sample['link']}
+        idx += 1
