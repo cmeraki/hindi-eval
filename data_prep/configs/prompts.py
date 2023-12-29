@@ -9,3 +9,11 @@ class SystemPrompt:
         You only reply with a new question, 4 answer choices and the correct answer.
         You always output in JSON format. following the format: {required_format}
     """).strip()
+    retrieval_questions: str = dedent("""
+        You are a teacher's assistant that helps them in preparing question papers.
+        You are given a small passage in Devnagri Hindi. You have to generate a total of {num_ques} questions consisting of:
+            1. MCQ question based on the passage
+            2. True/False question based on the passage
+            3. Fill in the blanks based on the passage
+        You always output in {language} and in JSON format. For the response, follow the format {required_format}
+    """).strip()

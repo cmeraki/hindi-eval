@@ -8,11 +8,9 @@ import os
 import json
 import openai
 import backoff
-import numpy as np
 from tqdm import tqdm
 from typing import Tuple, Dict, List
 from datetime import datetime
-from datasets import Dataset
 from argparse import ArgumentParser
 
 from .utils.logger import DataPrepLogger
@@ -21,40 +19,21 @@ from .configs.synthetic_dataset import GenerationConfiguration, synthetic_datase
 logger = DataPrepLogger(__name__).get_logger()
 
 
-def get_sys_prompt(base_prompt: str, reference_dataset: Dict, required_format: str) -> Dict:
-    subject = np.random.choice(
-        list(reference_dataset.keys())
-    )
-    grade = np.random.choice(
-        list(reference_dataset[subject].keys())
-    )
-    topic = np.random.choice(
-        reference_dataset[subject][grade]
-    )
-
-    logger.debug(f'Metadata for the prompt: {subject}, {grade}, {topic}')
-
-    sys_prompt = {
-        'role': 'system',
-        'content': base_prompt.format(
-            language='either Devnagri Hindi or Romanized Hindi',
-            subject=subject,
-            grade=grade,
-            topic=topic,
-            required_format=required_format
-        )
-    }
-
-    return sys_prompt, {'SUBJECT': subject, 'GRADE': grade, 'TOPIC': topic}
-
-
 def synth_save_to_disk(base_path: str, generated_dataset: List):
-    d = Dataset.from_list(generated_dataset)
-    logger.info(f'Number of rows: {d.num_rows}')
+    """
+    Saves data to disk in a sequential file by removing elements from the list
+    The function will flush the contents of the List to the disk
 
-    d.save_to_disk(
-        os.path.join(base_path)
-    )
+    Args:
+        base_path (str): Location of the base path where the data should be written
+        generated_dataset (List): Each element should be a valid Dict
+    """
+
+    logger.info(f'Number of rows: {len(generated_dataset)}')
+
+    with open(os.path.join(base_path, 'dataset.jsonl'), 'a+') as fp:
+        while generated_dataset:
+            fp.write(generated_dataset.pop())
 
 class GPTGenerator():
     def __init__(self, model_id) -> None:
@@ -65,10 +44,7 @@ class GPTGenerator():
         self.model_id = model_id
 
     @backoff.on_exception(backoff.expo, openai.RateLimitError, max_time=300)
-    def __call__(self, system_prompt: str, user_prompt: str = None, temperature: float = 1.4) -> Tuple[Dict, any]:
-        messages = [system_prompt]
-        if user_prompt:
-            messages.append(user_prompt)
+    def __call__(self, messages: List[str], temperature: float = 1.4) -> Tuple[Dict, any]:
 
         completions = self.client.chat.completions.create(
             model=self.model_id,
@@ -83,7 +59,7 @@ class GPTGenerator():
 
         op = json.loads(completions.choices[0].message.content)
 
-        logger.debug(f'System prompt: {system_prompt}, output: {op}')
+        logger.debug(f'Prompts: {messages}, output: {op}')
         logger.debug(f'Tokens used in generation using {self.model_id}: {completions.usage}')
 
         return op, completions.usage
@@ -103,23 +79,27 @@ if __name__ == '__main__':
     logger.info(f'Running with args: {args}')
 
     generator = GPTGenerator(model_id=GenerationConfiguration.model_id)
-
-    total_usage = {
-        'input': 0,
-        'output': 0,
-    }
     run_time = datetime.strftime(datetime.now(), '%Y%m%d-%H%M')
 
     for synth_ds_name, synth_ds in synthetic_dataset_models.items():
+        total_usage = {
+            'input': 0,
+            'output': 0,
+        }
+
+        if not synth_ds.enabled:
+            logger.info(f'Skipping {synth_ds_name}')
+            continue
+
         generated_dataset = []
-        logger.info(f'Generating synthetic dataset for {synth_ds.name}')
+        logger.info(f'Generating synthetic dataset for {synth_ds_name}')
 
         for idx in tqdm(range(synth_ds.sample_size)):
-            sys_prompt, metadata = get_sys_prompt(synth_ds.system_prompt, synth_ds.reference_dataset, synth_ds.required_format)
+            messages, metadata = synth_ds.preprocess_func(synth_ds.system_prompt, synth_ds.reference_dataset, synth_ds.required_format)
 
             try:
                 datapoint, usage = generator(
-                    system_prompt=sys_prompt,
+                    messages=messages,
                     temperature=GenerationConfiguration.temperature
                 )
                 total_usage['input'] += usage.prompt_tokens

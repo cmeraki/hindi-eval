@@ -1,10 +1,20 @@
-from typing import Optional, Dict, Type
+from enum import Enum
+from typing import Optional, Dict, Type, List
 from pydantic import BaseModel
 from dataclasses import dataclass
 from textwrap import dedent
 
 from .prompts import SystemPrompt
+from ..utils.dataset_processor import (
+    get_retreival_data_sys_prompt,
+    get_synthetic_data_sys_prompt
+)
 
+class LANGUAGE(Enum):
+    english='english'
+    devnagri_hindi='devnagri_hindi'
+    hinglish='hinglish'
+    romanized_hindi='romanized_hindi'
 
 class MCQResponse(BaseModel):
     QUESTION: str
@@ -18,20 +28,38 @@ class MCQResponse(BaseModel):
     TOPIC: Optional[str] = None
 
 
+class RetrievalMCQResponse(BaseModel):
+
+    class QUESTION_TYPES(Enum):
+        mcq = "mcq"
+        true_false = "true_false"
+        fill_in_the_blanks = "fill_in_the_blanks"
+
+    QUESTION: str
+    TYPE: QUESTION_TYPES
+    CHOICES: List[str]
+    TARGET: int
+    LANGUAGE: LANGUAGE
+    PASSAGE: Optional[str] = None
+
+
 @dataclass
 class GenerationConfiguration:
-    model_id: str = 'gpt-4-1106-preview'
+    model_id: str = 'gpt-3.5-turbo-0613'
     temperature: float = 1.4
 
 
 class SyntheticDatasets(BaseModel):
     name: str
-    system_prompt: str
+    enabled: bool
     sample_size: int
+    system_prompt: str
     example_prompt: Optional[str] = None # Will be passed as the first message after system prompt
     reference_dataset: Optional[Dict] = None
     response_model: Type[BaseModel]
     required_format: str
+    preprocess_func: Optional[object] = None # Only 1 preprocess func allowed, return system prompt and metadata dict
+
 
 synthetic_dataset_subjects = {
     "Physics": {
@@ -149,10 +177,29 @@ synthetic_dataset_subjects = {
 synthetic_dataset_models = {
     'general_mcq': SyntheticDatasets(
         name='general_mcq',
+        enabled=False,
         sample_size=50,
         system_prompt=SystemPrompt.hindi_mcq,
         reference_dataset=synthetic_dataset_subjects,
         response_model=MCQResponse,
-        required_format=dedent("{'QUESTION': <>, 'A': <>, 'B': <>, 'C': <>, 'D': <>, 'TARGET': <>}").strip()
+        required_format=dedent("{'QUESTION': <>, 'A': <>, 'B': <>, 'C': <>, 'D': <>, 'TARGET': <>}").strip(),
+        preprocess_func=get_synthetic_data_sys_prompt
+    ),
+    'retrieval_questions': SyntheticDatasets(
+        name='retrieval_questions',
+        enabled=True,
+        sample_size=50,
+        system_prompt=SystemPrompt.retrieval_questions,
+        response_model=RetrievalMCQResponse,
+        required_format=dedent("""
+            {
+                'QUESTION': <str>,
+                'TYPE': <Enum (mcq, true_false, fill_in_the_blanks)>
+                'CHOICES': <List>,
+                'TARGET': <int>,
+                'LANGUAGE': <Enum (english, devnagri_hindi, hinglish, romanized_hindi)>
+            }
+        """).strip(),
+        preprocess_func=get_retreival_data_sys_prompt
     )
 }
