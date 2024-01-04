@@ -81,7 +81,7 @@ def get_retreival_data_sys_prompt(
     sys_prompt = {
         'role': 'system',
         'content': base_prompt.format(
-            num_ques=15,
+            num_ques=10,
             language='Devnagri Hindi or Romanized Hindi',
             required_format=required_format
         )

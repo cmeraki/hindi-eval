@@ -53,7 +53,7 @@ class GPTGenerator():
             response_format={'type': 'json_object'},
             messages=messages,
             temperature=temperature,
-            max_tokens=2048
+            # max_tokens=2048
         )
 
         if completions.choices[0].finish_reason == 'length':

@@ -36,10 +36,10 @@ class RetrievalMCQResponse(BaseModel):
         fill_in_the_blanks = "fill_in_the_blanks"
 
     QUESTION: str
-    TYPE: str
-    CHOICES: Optional[List] = []
+    TYPE: Any = None
+    CHOICES: Any = None
     TARGET: Any
-    LANGUAGE: Optional[str] = None
+    LANGUAGE: Any = None
     PASSAGE_LINK: Optional[str] = None
 
 class MultiRetrievalMCQResponse(BaseModel):
@@ -47,7 +47,7 @@ class MultiRetrievalMCQResponse(BaseModel):
 
 @dataclass
 class GenerationConfiguration:
-    model_id: str = 'gpt-3.5-turbo-1106'
+    model_id: str = 'gpt-4-1106-preview'
     temperature: float = 1.4
 
 
@@ -195,16 +195,16 @@ synthetic_dataset_models = {
     'retrieval_questions': SyntheticDatasets(
         name='retrieval_questions',
         enabled=True,
-        sample_size=50,
+        sample_size=100,
         system_prompt=SystemPrompt.retrieval_questions,
         response_model=MultiRetrievalMCQResponse,
         required_format=dedent("""
             'RESPONSE': [{
                 'QUESTION': <str>,
-                'TYPE': <Enum (mcq, true_false, fill_in_the_blanks)>
+                'TYPE': <str>
                 'CHOICES': <List>,
-                'TARGET': <int>,
-                'LANGUAGE': <Enum (english, devnagri_hindi, hinglish, romanized_hindi)>
+                'TARGET': <int index of Choices>,
+                'LANGUAGE': <str>
             }]
         """).strip(),
         preprocess_func=get_retreival_data_sys_prompt,
