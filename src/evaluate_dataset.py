@@ -1,8 +1,12 @@
+"""
+Evaluates a dataset with GPT as the judge
+We send a task or a question to GPT and 2 candidates.
+GPT selects one of those candidates and returns the winner.
+"""
+
 import os
-import time
 import yaml
 import argparse
-import numpy as np
 from typing import Dict
 from datasets import load_from_disk
 
@@ -54,14 +58,14 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--save_path',
-        default='./data/translation_eval_results',
+        default='./data/processed/',
         help='Location of config dir',
         type=str,
         required=False
     )
     parser.add_argument(
         '--dataset_path',
-        default='./data/translation_eval',
+        default='./data/processed/translations',
         help='Location of config dir',
         type=str,
         required=False

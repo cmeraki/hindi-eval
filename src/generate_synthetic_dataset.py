@@ -1,7 +1,11 @@
 """
 Generator of synthetic data
 
-Uses GPT4 to generate dataset
+Uses GPT to generate synthetic dataset
+
+Relevant configs
+1. `.configs.synthetic_dataset.GenerationConfiguration` -> GPT model to use for synthetic data generation
+2. `.configs.synthetic_dataset.synthetic_dataset_models` -> Configuration for how the data should be generated
 """
 
 import os
@@ -71,7 +75,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '--save_path',
-        default='./data/synthetic_data/',
+        default='./data/synthetic/',
         help='Location of config dir',
         type=str,
         required=False
@@ -106,7 +110,8 @@ if __name__ == '__main__':
                 total_usage['input'] += usage.prompt_tokens
                 total_usage['output'] += usage.completion_tokens
 
-                if synth_ds.output_type.value == 'multi': # if a single prompt is used to generate multiple questions, datapoint will have 1 key with a list as value
+                # if a single prompt is used to generate multiple datapoints, dict will have 1 key with a list containing multiple datapoints
+                if synth_ds.output_type.value == 'multi':
                     logger.debug(f'Processing multi point dataset')
                     assert synth_ds.response_model.model_validate(datapoint), "Response by the model is not in the valid schema"
 
@@ -115,7 +120,8 @@ if __name__ == '__main__':
                             d.update({**metadata})
                             generated_dataset.append(d)
 
-                else: # datapoint in itself has a single question/answer
+                # datapoint in itself has a single dict
+                else:
                     assert synth_ds.response_model.model_validate(datapoint), "Response by the model is not in the valid schema"
                     datapoint.update({
                         **metadata

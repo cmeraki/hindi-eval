@@ -57,14 +57,23 @@ class OutputType(Enum):
 
 class SyntheticDatasets(BaseModel):
     name: str
+    # Flag to specify if the dataset should be generated
     enabled: bool
+    # Number of samples to generate
     sample_size: int
+    # System prompt that will be passed to GPT
     system_prompt: str
-    example_prompt: Optional[str] = None # Will be passed as the first message after system prompt
+    # Will be passed as the first message after system prompt
+    example_prompt: Optional[str] = None
+    # Any reference that will be passed to the preprocess func
     reference_dataset: Optional[Dict] = None
+    # Pydantic model that needs to be conformed to when the JSON response is returned
     response_model: Type[BaseModel]
-    required_format: str
-    preprocess_func: Optional[object] = None # Only 1 preprocess func allowed, return system prompt and metadata dict
+    # JSON of response model TODO: Generate this automatically
+    required_format: str 
+    # Only 1 preprocess func allowed, yields system prompt and metadata dict. This should be a generator
+    preprocess_func: Optional[object] = None
+    # How many JSON items will be returned
     output_type: OutputType = 'single'
 
 

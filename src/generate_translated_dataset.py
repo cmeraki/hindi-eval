@@ -1,3 +1,11 @@
+"""
+Translates dataset using LLMs
+
+Relevant configs
+1. `.configs.translators.translator_engines` -> Configuration for which translators to use
+2. `.configs.dataset.translation_datasets` -> Configuration for which dataset to translate
+"""
+
 import os
 import gc
 import argparse
@@ -16,7 +24,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--save_path',
-        default='./data/',
+        default='./data/processed/translations',
         help='Location of path to save the generated dataset',
         type=str,
         required=False
@@ -82,7 +90,6 @@ if __name__ == '__main__':
                 ds.save_to_disk(
                     os.path.join(
                         args.save_path,
-                        'translation_eval',
                         run_time,
                         f'{translator_name}_{dataset_name}',
                         conf if conf != '*' else 'all',
