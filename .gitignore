@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 .vscode/
+# For quick EDA
+temp.ipynb
