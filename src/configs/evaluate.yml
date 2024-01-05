@@ -1,0 +1,6 @@
+translate:
+  text_key: messages
+  candidate_1: translated_reponse_m4t
+  candidate_2: translated_reponse_gpt
+  process: True
+  sample_size: 200
